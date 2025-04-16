@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     folder_path_c = os.path.join(os.path.dirname(__file__), "../../Data/COVID-19-Wearables")
     folder_path_m_base = os.path.join(os.path.dirname(__file__), f"../../Data/COVID-19-Wearables-Missing/{mechanism}/{mr}")
-    folder_end = os.path.join(os.path.dirname(__file__), "../../Results/RHR")
+    folder_end = os.path.join(os.path.dirname(__file__), "../../Results/RHR/online")
 
     for i in range(1, num_subfolders + 1):
         folder_path_m = f"{folder_path_m_base}/{i}"
@@ -60,17 +60,6 @@ if __name__ == "__main__":
                 os.makedirs(figure_folder, exist_ok=True)
                 os.makedirs(anomalies_folder, exist_ok=True)
 
-                # Delete all files in the Anomalies and Figures folders except those ending with '_offline_anomalies.csv' or '_offline.pdf'
-                for folder in [anomalies_folder, figure_folder]:
-                    for file in os.listdir(folder):
-                        file_path = os.path.join(folder, file)
-                        if os.path.isfile(file_path) and not (file.endswith('_offline_anomalies.csv') or file.endswith('_offline.pdf')):
-                            try:
-                                os.remove(file_path)
-                                print(f"🗑️ Deleted file: {file_path}")
-                            except Exception as e:
-                                print(f"❌ Error deleting file {file_path}: {e}")
-
                 # Create folders for the mechanism and missing rate inside Anomalies and Figures
                 mechanism_figure_folder = os.path.join(figure_folder, mechanism)
                 mechanism_anomalies_folder = os.path.join(anomalies_folder, mechanism)
@@ -81,32 +70,38 @@ if __name__ == "__main__":
                 os.makedirs(mr_figure_folder, exist_ok=True)
                 os.makedirs(mr_anomalies_folder, exist_ok=True)
 
-                figure_path = os.path.join(mr_figure_folder, f"{myphd_id}_offline_{mechanism}_{mr}_{i}.pdf")
-                anomalies_path = os.path.join(mr_anomalies_folder, f"{myphd_id}_offline_anomalies_{mechanism}_{mr}_{i}.csv") 
+                figure_path = os.path.join(mr_figure_folder, f"{myphd_id}_online_alerts_{mechanism}_{mr}_{i}.pdf")
+                #figure_bar_path = os.path.join(mr_figure_folder, f"{myphd_id}_online_alerts_bar_{mechanism}_{mr}_{i}.pdf")
+                anomalies_path = os.path.join(mr_anomalies_folder, f"{myphd_id}_online_anomalies_{mechanism}_{mr}_{i}.csv")
+                anomalies_alert_path = os.path.join(mr_anomalies_folder, f"{myphd_id}_online_alerts_{mechanism}_{mr}_{i}.csv")  
+
                 
                 command = [
-                    "python", "Metrics/rhrad_offline.py",
+                    "python", "Metrics/rhrad_online_24hr_alerts_v7.py",
                     "--heart_rate", hr_path,
-                    "--steps", steps_path,
+                    "--steps", steps_path,\
                     "--myphd_id", myphd_id,
-                    "--figure", figure_path,
-                    "--anomalies", anomalies_path
+                    "--figure1", figure_path,
+                    "--anomalies", anomalies_path,
+                    "--alerts", anomalies_alert_path,
+                    #"--figure2", figure_bar_path
                 ]
                 
-                print(f"Executing: {' '.join(command)}")
+                #print(f"Executing: {' '.join(command)}")
+                print(f"Executing for: {myphd_id}")
                 
                 # Call the script
                 try:
                     result = subprocess.run(command, check=True)
-                    print("✅ Command executed successfully!")
+                    print(f"✅ Command executed successfully for {myphd_id}!")
                     print(result.stdout)
                 except subprocess.CalledProcessError as e:
-                    print("\n❌ ERROR EXECUTING THE SCRIPT FOR:")
-                    print(f"   🩺 HR File: {file_hr}")
-                    print(f"   👣 Steps File: {matching_steps[0]}")
-                    print(f"🔴 Exit code: {e.returncode}")
-                    print(f"📄 Standard output:\n{e.stdout}")
-                    print(f"⚠️ Error output:\n{e.stderr}")
+                    print(f"\n❌ ERROR EXECUTING THE SCRIPT FOR {myphd_id}\n")
+                    # print(f"   🩺 HR File: {file_hr}")
+                    # print(f"   👣 Steps File: {matching_steps[0]}")
+                    # print(f"🔴 Exit code: {e.returncode}")
+                    # print(f"📄 Standard output:\n{e.stdout}")
+                    # print(f"⚠️ Error output:\n{e.stderr}")
             else:
                 print(f"❌ Corresponding steps file not found for HR: {file_hr}")
 

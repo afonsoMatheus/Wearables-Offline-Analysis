@@ -5,4 +5,8 @@ Data/
 Scripts/Runners/Metrics
 miss_experiment.code-workspace
 Scripts/Runners/run_hrosad.py
-Results/RHR
+Results/RHR/**
+!Results/RHR/offline/
+!Results/RHR/offline/offline_exploration.ipynb
+Scripts/Runners/output.log
+
