@@ -1,88 +1,84 @@
-import pandas as pd
-import numpy as np
-from mdatagen.univariate.uMCAR import uMCAR
 import os
 import argparse
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
 
-# Configurar argumentos de linha de comando
-if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser(description="Simulador de valores ausentes em datasets.")
+from mdatagen.univariate.uMCAR import uMCAR
+from mdatagen.univariate.uMAR import uMAR
+from mdatagen.univariate.uMNAR import uMNAR
+
+def main():
+    parser = argparse.ArgumentParser(description="Missing data simulator for datasets.")
     parser.add_argument(
         "-m", 
         type=str, 
         required=True, 
         choices=["MCAR", "MAR", "MNAR"], 
-        help="Nome do mecanismo de missing data (escolha entre: MCAR, MAR, MNAR)."
+        help="Name of the missing data mechanism (choose from: MCAR, MAR, MNAR)."
     )
-    parser.add_argument("-p", type=int, required=True, help="Porcentagem de valores ausentes (ex: 25, 50, ...).")
-    parser.add_argument("-n", type=int, required=True, help="Número de datasets a serem gerados para cada arquivo.")
-
-    # Parsear os argumentos
+    parser.add_argument("-p", type=int, required=True, help="Percentage of missing values (e.g., 25, 50, ...).")
+    parser.add_argument("-n", type=int, required=True, help="Number of datasets to be generated for each file.")
     args = parser.parse_args()
 
-    # Atribuir os argumentos a variáveis
     mechanism = args.m
     mr = args.p
     num_datasets = args.n
 
-    # Caminho da pasta
-    folder_path = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'COVID-19-Wearables')
-
-    # Listar todos os arquivos na pasta
+    folder_path = os.path.join(
+        os.path.dirname(__file__), '..', '..', 'Data', 'COVID-19-Wearables'
+    )
     files = [file for file in os.listdir(folder_path) if file.endswith('_hr.csv')]
 
-    for file_name in files:
-        # Caminho completo do arquivo
+    for file_name in tqdm(files, desc=f"Processing files for {mr}%", unit="file"):
         file_path = os.path.join(folder_path, file_name)
-        
-        # Carregar o arquivo CSV como um DataFrame
         try:
             data = pd.read_csv(file_path)
         except Exception as e:
-            print(f"Erro ao carregar o arquivo {file_name}: {e}")
+            print(f"Error loading file {file_name}: {e}")
             continue
 
-        for idx in range(1, num_datasets + 1):
+        for idx in tqdm(
+            range(1, num_datasets + 1),
+            desc=f"Generating datasets for {file_name}",
+            unit="dataset",
+            leave=False
+        ):
             match mechanism:
                 case "MCAR":
                     X = data[["datetime", "heartrate"]]
                     X.set_index("datetime", inplace=True)
-
-                    # Criar uma instância com taxa de missing igual a 25% no dataset sob o mecanismo MCAR
                     generator = uMCAR(X=X, y=data.heartrate.to_numpy(), missing_rate=mr, x_miss="heartrate") 
-                    
-                    # Gerar os dados com valores ausentes
                     generate_data = generator.random()
-
                 case "MAR":
-                    # Implementar o mecanismo MAR aqui
-                    pass
-
+                    X = data[["datetime", "heartrate"]]
+                    X["time"] = pd.to_datetime(X["datetime"]).dt.time
+                    generator = uMAR(X=X, y=data.heartrate.to_numpy(), missing_rate=mr, x_miss='heartrate', x_obs='time')
+                    generate_data = generator.lowest()
                 case "MNAR":
-                    # Implementar o mecanismo MNAR aqui
-                    pass
-
+                    X = data[["datetime", "heartrate"]]
+                    generator = uMNAR(X=X, y=data.heartrate.to_numpy(), threshold=0, missing_rate=mr, x_miss='heartrate')
+                    generate_data = generator.run()
                 case _:
-                    print(f"Mecanismo {mechanism} inválido.")
+                    print(f"Invalid mechanism {mechanism}.")
                     continue
-                
-            # Caminho para salvar o novo dataset
-            # Criar pastas baseadas no MCAR e na porcentagem
-            base_folder = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'COVID-19-Wearables-Missing')
-            mcar_folder = os.path.join(base_folder, mechanism)
-            percentage_folder = os.path.join(mcar_folder, f'{mr}')
-            idx_folder = os.path.join(percentage_folder, f'{idx}')
 
+            base_folder = os.path.join(
+                os.path.dirname(__file__), '..', '..', 'Data', 'COVID-19-Wearables-Missing'
+            )
+            mechanism_folder = os.path.join(base_folder, mechanism)
+            percentage_folder = os.path.join(mechanism_folder, f'{mr}')
+            idx_folder = os.path.join(percentage_folder, f'{idx}')
             os.makedirs(idx_folder, exist_ok=True)
 
-            # Caminho para salvar o novo dataset
-            save_path = os.path.join(idx_folder, file_name.replace('.csv', f'_{mechanism}_{mr}_{idx}.csv'))
-            
-            # Salvar o novo dataset com valores ausentes
-            generate_data.reset_index().merge(data[["datetime", "user"]], on="datetime")[["user", "datetime", "heartrate", "target"]].to_csv(save_path, index=False)
+            save_path = os.path.join(
+                idx_folder,
+                file_name.replace('.csv', f'_{mechanism}_{mr}_{idx}.csv')
+            )
 
-            print(f"✅ Arquivo {file_name} dataset {idx} processado e salvo como {save_path}")
+            generate_data.reset_index().merge(
+                data[["datetime", "user"]], on="datetime"
+            )[["user", "datetime", "heartrate", "target"]].to_csv(save_path, index=False)
 
-    # Exibir mensagem de conclusão
-    print("✅ Todos os arquivos foram processados e salvos com sucesso.")
+if __name__ == "__main__":
+    main()

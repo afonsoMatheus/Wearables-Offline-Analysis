@@ -6,7 +6,7 @@ def run_rhrad_online(args):
     mr_value, iterations = args
 
     subprocess.run(
-        ["python", "run_rhrad_online.py",
+        ["python", "run_rhrad_offline.py",
             "-m", "MCAR", 
             "-p", str(mr_value),
             "-n", str(iterations)]

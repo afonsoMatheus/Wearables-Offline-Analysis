@@ -30,6 +30,8 @@ if __name__ == "__main__":
     folder_path_m_base = os.path.join(os.path.dirname(__file__), f"../../Data/COVID-19-Wearables-Missing/{mechanism}/{mr}")
     folder_end = os.path.join(os.path.dirname(__file__), "../../Results/RHR/offline")
 
+    failed_patients = {}
+
     for i in range(1, num_subfolders + 1):
         folder_path_m = f"{folder_path_m_base}/{i}"
 
@@ -72,31 +74,35 @@ if __name__ == "__main__":
 
                 figure_path = os.path.join(mr_figure_folder, f"{myphd_id}_offline_{mechanism}_{mr}_{i}.pdf")
                 anomalies_path = os.path.join(mr_anomalies_folder, f"{myphd_id}_offline_anomalies_{mechanism}_{mr}_{i}.csv") 
-                
+
+                # Ensure the destination files do not already exist
+                if os.path.exists(figure_path):
+                    os.remove(figure_path)
+
+                if os.path.exists(anomalies_path):
+                    os.remove(anomalies_path)
+
                 command = [
                     "python", "Metrics/rhrad_offline.py",
                     "--heart_rate", hr_path,
                     "--steps", steps_path,
                     "--myphd_id", myphd_id,
                     "--figure", figure_path,
-                    "--anomalies", anomalies_path
+                    "--anomalies", anomalies_path,
+                    "--random_seed", "1"
                 ]
-                
-                print(f"Executing: {' '.join(command)}")
-                
+
                 # Call the script
                 try:
                     result = subprocess.run(command, check=True)
-                    print("✅ Command executed successfully!")
-                    print(result.stdout)
                 except subprocess.CalledProcessError as e:
-                    print("\n❌ ERROR EXECUTING THE SCRIPT FOR:")
-                    print(f"   🩺 HR File: {file_hr}")
-                    print(f"   👣 Steps File: {matching_steps[0]}")
-                    print(f"🔴 Exit code: {e.returncode}")
-                    print(f"📄 Standard output:\n{e.stdout}")
-                    print(f"⚠️ Error output:\n{e.stderr}")
+                    if myphd_id not in failed_patients:
+                        failed_patients[myphd_id] = []
+                    failed_patients[myphd_id].append((mr, i))
             else:
                 print(f"❌ Corresponding steps file not found for HR: {file_hr}")
-
-    print("🎉 All commands have been executed. 🎉")
+    
+    for patient_id, values in failed_patients.items():
+        print(f"❌ Patient {patient_id} failed for:")
+        for mr, i in values:
+            print(f"  - Missing Rate: {mr}, Subfolder: {i}")

@@ -1,12 +1,22 @@
 .venv/
 venv/
 env/
-Data/
-Scripts/Runners/Metrics
+.history
 miss_experiment.code-workspace
-Scripts/Runners/run_hrosad.py
+
+Data/*
+
 Results/RHR/**
 !Results/RHR/offline/
 !Results/RHR/offline/offline_exploration.ipynb
+
+Scripts/Missing Simulators
+!Scripts/Missing Simulators/miss_simulator.py
+
+Scripts/Runners/Metrics
 Scripts/Runners/output.log
+Scripts/Runners/run_hrosad.py
+Scripts/Runners/Logs
+Scripts/Runners/run_rhrad_online.py
+Scripts/Runners/run_all.py
 
