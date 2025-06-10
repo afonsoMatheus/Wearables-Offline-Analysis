@@ -1,3 +1,17 @@
+"""
+Main function to simulate missing data in heart rate column in COVID-19 wearables datasets, avaiable at: 
+https://storage.googleapis.com/gbsc-gcp-project-ipop_public/COVID-19/COVID-19-Wearables.zip).
+
+Command-line Arguments:
+    -m: Missing values mechanism (choices: MCAR, MAR, MNAR)
+    -p: Percentage of missing values (integer)
+    -n: Number of subfolders to process (integer)
+
+Outputs:
+    - CSV files with simulated missing values saved in a structured directory format.
+    - Each file is named according to the original file name, mechanism, percentage, and dataset index.
+"""
+
 import os
 import argparse
 import pandas as pd
@@ -8,7 +22,8 @@ from mdatagen.univariate.uMCAR import uMCAR
 from mdatagen.univariate.uMAR import uMAR
 from mdatagen.univariate.uMNAR import uMNAR
 
-def main():
+if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description="Missing data simulator for datasets.")
     parser.add_argument(
         "-m", 
@@ -80,5 +95,4 @@ def main():
                 data[["datetime", "user"]], on="datetime"
             )[["user", "datetime", "heartrate", "target"]].to_csv(save_path, index=False)
 
-if __name__ == "__main__":
-    main()
+
